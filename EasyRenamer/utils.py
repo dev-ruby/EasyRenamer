@@ -3,7 +3,7 @@ import os
 from PyQt5.QtGui import QFont
 from PyQt5.QtWidgets import QMessageBox, QFileDialog, QWidget, QFrame, QTextEdit, QLabel, QCheckBox, QTextBrowser
 
-from file import Folder
+from file_utils import Folder
 from PyQt5.QtCore import Qt, QRect, QSize
 
 

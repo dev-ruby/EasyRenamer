@@ -1,6 +1,6 @@
 import os
 import sys
-
+import typing
 from PyQt5.QtCore import QRect, Qt
 from PyQt5.QtGui import QFont
 from PyQt5.QtWidgets import (
@@ -11,7 +11,7 @@ from PyQt5.QtWidgets import (
     QComboBox,
     QLabel, )
 
-from file import Folder
+from file_utils import Folder
 from utils import FrameUtil
 from utils import setFolderPath, setPage, searchFolderPath
 
