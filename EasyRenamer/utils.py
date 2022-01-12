@@ -1,10 +1,21 @@
-import os
+from typing import List
 
-from PyQt5.QtGui import QFont
-from PyQt5.QtWidgets import QMessageBox, QFileDialog, QWidget, QFrame, QTextEdit, QLabel, QCheckBox, QTextBrowser
-
-from file_utils import Folder
 from PyQt5.QtCore import Qt, QRect, QSize
+from PyQt5.QtGui import QFont
+from PyQt5.QtWidgets import (
+    QMessageBox,
+    QFrame,
+    QTextEdit,
+    QLabel,
+    QCheckBox,
+    QTextBrowser,
+    QComboBox,
+    QLineEdit,
+)
+
+import ui_event
+from file_utils import Sort
+from file_utils import SortType
 
 
 class FrameUtil:
@@ -13,28 +24,27 @@ class FrameUtil:
         FrameUtil.createExtensionFrame(base)
 
     @staticmethod
-    def getFrameByPage(base: QWidget, page_number: int, old_page_number: int):
+    def getFrameByPage(base, page_number: int, old_page_number: int):
         if page_number == old_page_number:
             return
         if page_number == 0:
             base.frame_change_ext.show()
-            print("show ext page")
+
         if old_page_number == 0:
             base.frame_change_ext.hide()
-            print("hide ext page")
 
     @staticmethod
-    def createExtensionFrame(base: QWidget):
+    def createExtensionFrame(base):
         font = QFont()
         font.setPointSize(14)
 
         base.frame_change_ext = QFrame(base)
         base.frame_change_ext.setObjectName("frame_change_ext")
-        base.frame_change_ext.setGeometry(QRect(200, 110, 700, 500))
+        base.frame_change_ext.setGeometry(QRect(200, 110, 700, 600))
         base.frame_change_ext.setFrameShape(QFrame.StyledPanel)
         base.frame_change_ext.setFrameShadow(QFrame.Raised)
 
-        base.ext_frame_input_old_ext = QTextEdit(base.frame_change_ext)
+        base.ext_frame_input_old_ext = QLineEdit(base.frame_change_ext)
         base.ext_frame_input_old_ext.setObjectName("ext_frame_input_old_ext")
         base.ext_frame_input_old_ext.setGeometry(QRect(350, 40, 150, 35))
         base.ext_frame_input_old_ext.setFont(font)
@@ -60,7 +70,7 @@ class FrameUtil:
 
         base.ext_frame_text_browser_result = QTextBrowser(base.frame_change_ext)
         base.ext_frame_text_browser_result.setObjectName("textBrowser")
-        base.ext_frame_text_browser_result.setGeometry(QRect(55, 180, 580, 320))
+        base.ext_frame_text_browser_result.setGeometry(QRect(55, 240, 580, 320))
         base.ext_frame_text_browser_result.setFont(font)
 
         base.ext_frame_checkbox_all = QCheckBox("전체 파일", base.frame_change_ext)
@@ -70,11 +80,34 @@ class FrameUtil:
         base.ext_frame_checkbox_all.setIconSize(QSize(32, 32))
         base.ext_frame_checkbox_all.setChecked(False)
         base.ext_frame_checkbox_all.setFont(font)
-        base.ext_frame_checkbox_all.clicked[bool].connect(setExtFrameInput)
+        base.ext_frame_checkbox_all.clicked[bool].connect(
+            lambda check: ui_event.eventSetExtFrameInput(base, check)
+        )
+
+        base.ext_frame_combobox_sort = QComboBox(base.frame_change_ext)
+        base.ext_frame_combobox_sort.setObjectName("input_sort")
+        base.ext_frame_combobox_sort.setGeometry(QRect(240, 170, 350, 35))
+        base.ext_frame_combobox_sort.setFont(font)
+        base.ext_frame_combobox_sort.addItems(["이름", "파일 크기", "생성 날짜"])
+        base.ext_frame_combobox_sort.activated[int].connect(
+            lambda index: ui_event.eventSetSortType(base, index)
+        )
+        base.ext_frame_combobox_sort.activated[int].connect(
+            lambda index: ui_event.eventUpdateExtFrameText(base)
+        )
+
+        base.ext_frame_label_path = QLabel("정렬 방법", base.frame_change_ext)
+        base.ext_frame_label_path.setObjectName("label_path")
+        base.ext_frame_label_path.setGeometry(QRect(120, 170, 81, 35))
+        base.ext_frame_label_path.setFont(font)
+        base.ext_frame_label_path.setScaledContents(False)
+        base.ext_frame_label_path.setAlignment(Qt.AlignCenter)
 
 
-def find_files_with_ext(ext: str, files: list) -> list:
+def find_files_with_ext(ext: str, files: List[str]) -> List[str]:
     files_with_ext = list()
+
+    ext = "." + ext
 
     for file_name in files:
         if file_name.endswith(ext):
@@ -83,49 +116,21 @@ def find_files_with_ext(ext: str, files: list) -> list:
     return files_with_ext
 
 
-def getPathWarningBox() -> QMessageBox:
-    message_box = QMessageBox()
+def getErrorMessageBox(base, error_message) -> QMessageBox:
+    message_box = QMessageBox(base)
     message_box.setWindowTitle("Error")
     message_box.setIcon(QMessageBox.Warning)
-    message_box.setText("폴더의 경로가 올바르지 않습니다.")
+    message_box.setText(error_message)
     message_box.setStandardButtons(QMessageBox.Ok)
     message_box.setDefaultButton(QMessageBox.Ok)
+
     return message_box
 
 
-def setFolderPath(base):
-    path = base.input_path.text()
-    is_folder_exist = os.path.isdir(path)
-    if not is_folder_exist:
-        message_box = base.getPathWarningBox()
-        message_box.exec_()
-    else:
-        base.folder = Folder(path)
-
-
-def searchFolderPath(base):
-    path = QFileDialog.getExistingDirectory(base, "Select Folder")
-    base.input_path.setText(path)
-
-
-def setPage(base, index):
-    old_page_number = base.current_page
-    base.current_page = index
-    FrameUtil.getFrameByPage(base, base.current_page, old_page_number)
-
-
-def setExtFrameInput(base, checked):
-    if checked:
-        setExtFrameInputDisable(base)
-    else:
-        setExtFrameInputEnable(base)
-
-
-def setExtFrameInputDisable(base):
-    base.ext_frame_input_old_ext.setDisabled(True)
-    base.ext_frame_label_old_ext.setDisabled(True)
-
-
-def setExtFrameInputEnable(base):
-    base.ext_frame_input_old_ext.setEnabled(True)
-    base.ext_frame_label_old_ext.setEnabled(True)
+def sortFiles(base, files: List[str]) -> List[str]:
+    if base.sort_type == SortType.NAME:
+        return Sort.sort_file_name(files)
+    elif base.sort_type == SortType.SIZE:
+        return Sort.sort_file_size(files)
+    elif base.sort_type == SortType.TIME:
+        return Sort.sort_file_time(files)

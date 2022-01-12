@@ -1,12 +1,13 @@
 import os
+from enum import Enum
+from typing import List, Optional
 
 
 class Folder:
     def __init__(self, path: str):
         self.path = path
 
-    def get_file_names(self) -> list:
-        """Return the names of files (not the path)"""
+    def get_file_relative_paths(self) -> List[str]:
         file_names = list()
 
         def search(path):
@@ -22,14 +23,15 @@ class Folder:
 
         return file_names
 
-    def get_file_paths(self) -> list:
-        """Return the paths of files"""
+    def get_file_absolute_paths(self) -> List[str]:
         return list(
-            map(lambda file: os.path.join(self.path, file), self.get_file_names())
+            map(
+                lambda file: os.path.join(self.path, file),
+                self.get_file_relative_paths(),
+            )
         )
 
-    def get_folder_names(self) -> list:
-        """Return the name of folders (not the path)"""
+    def get_folder_relative_paths(self) -> List[str]:
         folder_names = list()
 
         def search(path):
@@ -46,27 +48,40 @@ class Folder:
 
         return folder_names
 
-    def get_folder_paths(self) -> list:
-        """Return the paths of folders"""
+    def get_folder_absolute_paths(self) -> List[str]:
         return list(
-            map(lambda file: os.path.join(self.path, file), self.get_folder_names())
+            map(
+                lambda file: os.path.join(self.path, file),
+                self.get_folder_relative_paths(),
+            )
         )
 
 
-def replace_name_order(files: list, first: int, last: int) -> None:
-    for i in range(first, last + 1):
-        if i - first == len(files):
-            break
-        path = "\\".join(files[i - first].split("\\")[:-1]) + "\\"
-        ext = os.path.splitext(files[i - first].split("\\")[-1])[-1]
-        path = path + str(i) + ext
-        os.rename(files[i - first], path)
+class Filter:
+    @staticmethod
+    def filter_file_size(path: str) -> int:
+        return os.path.getsize(path)
+
+    @staticmethod
+    def filter_time(path: str) -> float:
+        return os.path.getctime(path)
 
 
-def replace_string(files: list, old: str, new: str) -> None:
-    for file_name in files:
-        path = "\\".join(file_name.split("\\")[:-1]) + "\\"
-        ext = os.path.splitext(file_name.split("\\")[-1])[-1]
-        name = os.path.splitext(file_name.split("\\")[-1])[0].replace(old, new)
-        path = path + name + ext
-        os.rename(file_name, path)
+class Sort:
+    @staticmethod
+    def sort_file_size(files: list, is_reversed: Optional[bool] = False) -> List[str]:
+        return sorted(files, key=Filter.filter_file_size, reverse=is_reversed)
+
+    @staticmethod
+    def sort_file_time(files: list, is_reversed: Optional[bool] = False) -> List[str]:
+        return sorted(files, key=Filter.filter_time, reverse=is_reversed)
+
+    @staticmethod
+    def sort_file_name(files: list, is_reversed: Optional[bool] = False) -> List[str]:
+        return sorted(files, reverse=is_reversed)
+
+
+class SortType(Enum):
+    NAME = 0
+    TIME = 1
+    SIZE = 2
